@@ -1,0 +1,4 @@
+{
+    "command": "pytest",
+    "working_directory": "/home/kavia/workspace/code-generation/event-ticket-booking-system-16232/ticket_backend"
+}
