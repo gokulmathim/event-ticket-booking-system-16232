@@ -91,6 +91,9 @@ def update_seat_status(event_id, seat_id, status):
 
 # PUBLIC_INTERFACE
 def create_ticket(event_id, seat_id, user_id):
+    """
+    Attempts to book one seat and create a ticket. Returns ticket object or None if already booked or seat not found.
+    """
     seat = get_seat(event_id, seat_id)
     if seat is None or seat["status"] != "available":
         return None
@@ -105,6 +108,35 @@ def create_ticket(event_id, seat_id, user_id):
     _db["tickets"][ticket_id] = ticket
     update_seat_status(event_id, seat_id, "booked")
     return ticket
+
+# PUBLIC_INTERFACE
+def book_multiple_seats(event_id, seat_ids, user_id):
+    """
+    Atomically book multiple seats for a user.
+    - If any of the seats is unavailable, returns with 'success' only for seats which could be booked atomically, and for the rest lists failed_seats.
+    - If all are booked successfully, returns list of all tickets and empty failed_seats list.
+    """
+    booked_tickets = []
+    failed_seats = []
+
+    # Check all seat existence and availability first
+    for seat_id in seat_ids:
+        seat = get_seat(event_id, seat_id)
+        if seat is None or seat["status"] != "available":
+            failed_seats.append(seat_id)
+
+    if failed_seats:
+        return [], failed_seats
+
+    # All seats available, proceed with booking
+    for seat_id in seat_ids:
+        ticket = create_ticket(event_id, seat_id, user_id)
+        if not ticket:
+            # (Should not happen since we checked, but for safety)
+            failed_seats.append(seat_id)
+        else:
+            booked_tickets.append(ticket)
+    return booked_tickets, failed_seats
 
 # PUBLIC_INTERFACE
 def get_ticket(ticket_id):

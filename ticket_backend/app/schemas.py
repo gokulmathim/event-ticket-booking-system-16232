@@ -59,6 +59,18 @@ class TicketListResponseSchema(Schema):
 class SeatBookRequestSchema(Schema):
     user_id = fields.String(required=True, description="User ID booking the seat")
 
+class MultiSeatBookRequestSchema(Schema):
+    user_id = fields.String(required=True, description="User ID booking the seats")
+    seat_ids = fields.List(
+        fields.String(), 
+        required=True,
+        description="List of seat IDs to be booked"
+    )
+
+class MultiTicketResponseSchema(Schema):
+    tickets = fields.List(fields.Nested(TicketResponseSchema))
+    failed_seats = fields.List(fields.String(), description="Seat IDs that could not be booked (already booked or not found)")
+
 class PaymentRequestSchema(Schema):
     user_id = fields.String(required=True)
     ticket_id = fields.String(required=True)

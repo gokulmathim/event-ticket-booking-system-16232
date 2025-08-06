@@ -1,7 +1,8 @@
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from app.schemas import (
-    SeatListResponseSchema, SeatBookRequestSchema, TicketResponseSchema
+    SeatListResponseSchema, SeatBookRequestSchema, TicketResponseSchema,
+    MultiSeatBookRequestSchema, MultiTicketResponseSchema
 )
 from app import models
 
@@ -44,3 +45,25 @@ class SeatBook(MethodView):
         if not ticket:
             abort(400, message="Unable to create ticket")
         return ticket
+
+@blp.route("/book")
+class MultiSeatBook(MethodView):
+    # PUBLIC_INTERFACE
+    @blp.arguments(MultiSeatBookRequestSchema)
+    @blp.response(201, MultiTicketResponseSchema)
+    def post(self, req, event_id):
+        """
+        Book multiple seats atomically for an event.
+        - Input: {"user_id": "...", "seat_ids": [seat_id1, seat_id2, ...]}
+        - If any seat is already booked or not found, returns failed_seats list and no seats will be booked.
+        - If all available, all booked, and tickets returned.
+        """
+        user_id = req["user_id"]
+        seat_ids = req["seat_ids"]
+        if not seat_ids or not isinstance(seat_ids, list):
+            abort(400, message="seat_ids must be a list of seat IDs")
+        booked_tickets, failed_seats = models.book_multiple_seats(event_id, seat_ids, user_id)
+        if failed_seats and not booked_tickets:
+            abort(409, message=f"One or more seats are already booked or not found: {failed_seats}")
+        # Always atomic: either all or none, so failed_seats list will either be empty (success) or all failed.
+        return {"tickets": booked_tickets, "failed_seats": failed_seats}
