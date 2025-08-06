@@ -92,7 +92,12 @@ def update_seat_status(event_id, seat_id, status):
 # PUBLIC_INTERFACE
 def create_ticket(event_id, seat_id, user_id):
     """
-    Attempts to book one seat and create a ticket. Returns ticket object or None if already booked or seat not found.
+    Create a new ticket for the given seat at an event for a user, generating a guaranteed unique ticket ID.
+
+    Each ticket created uses a universally unique identifier (UUID) via uuid.uuid4(), ensuring every ticket ID is distinct
+    system-wide. This logic ensures that even in high-concurrency scenarios or distributed contexts, there will be no ID collisions.
+
+    Returns the ticket object if successful; returns None if the seat is already booked or not found.
     """
     seat = get_seat(event_id, seat_id)
     if seat is None or seat["status"] != "available":
